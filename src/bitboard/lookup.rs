@@ -10,6 +10,11 @@ pub struct AttackTables {
     pub white_pawn: [Bitboard; 64],
     pub black_pawn: [Bitboard; 64],
 }
+impl Default for AttackTables {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl AttackTables {
     pub fn new() -> Self {

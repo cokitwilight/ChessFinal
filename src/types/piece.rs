@@ -48,6 +48,16 @@ impl PieceType {
     pub fn idx(self) -> usize {
         self as usize
     }
+    pub fn value(self) -> i32 {
+        match self {
+            PieceType::Pawn => 100,
+            PieceType::Knight => 310,
+            PieceType::Bishop => 330,
+            PieceType::Rook => 500,
+            PieceType::Queen => 900,
+            PieceType::King => 0,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

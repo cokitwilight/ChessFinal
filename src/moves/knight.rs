@@ -16,16 +16,16 @@ pub fn pseudo_knight_moves(board: &Board, color: Color, moves: &mut MoveList) {
 
         while let Some(to) = pop_lsb(&mut captures) {
             moves.push(Move {
-                from: from,
-                to: to,
+                from,
+                to,
                 kind: MoveType::Capture,
                 promotion: None,
             });
         }
         while let Some(to) = pop_lsb(&mut quiets) {
             moves.push(Move {
-                from: from,
-                to: to,
+                from,
+                to,
                 kind: MoveType::Normal,
                 promotion: None,
             });
@@ -54,7 +54,7 @@ pub fn pseudo_knight_moves_at(board: &Board, color: Color, sq: Square, moves: &m
     while let Some(to) = pop_lsb(&mut captures) {
         moves.push(Move {
             from: sq,
-            to: to,
+            to,
             kind: MoveType::Capture,
             promotion: None,
         });
@@ -62,7 +62,7 @@ pub fn pseudo_knight_moves_at(board: &Board, color: Color, sq: Square, moves: &m
     while let Some(to) = pop_lsb(&mut quiets) {
         moves.push(Move {
             from: sq,
-            to: to,
+            to,
             kind: MoveType::Normal,
             promotion: None,
         });
@@ -81,8 +81,8 @@ pub fn pseudo_knight_capture_moves(board: &Board, color: Color, moves: &mut Move
 
         while let Some(to) = pop_lsb(&mut captures) {
             moves.push(Move {
-                from: from,
-                to: to,
+                from,
+                to,
                 kind: MoveType::Capture,
                 promotion: None,
             });

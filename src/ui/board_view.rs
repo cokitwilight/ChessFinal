@@ -118,15 +118,15 @@ pub fn draw_board_sized(
         draw_promotion_picker(&painter, board_rect, orientation, picker);
     }
 
-    if response.clicked() {
-        if let Some(pos) = response.interact_pointer_pos() {
-            if let Some(picker) = promotion_picker {
-                // While picker is open, consume board clicks.
-                return promotion_action_at(pos, board_rect, orientation, picker);
-            }
-
-            return screen_pos_to_square(pos, board_rect, orientation).map(BoardAction::Square);
+    if response.clicked()
+        && let Some(pos) = response.interact_pointer_pos()
+    {
+        if let Some(picker) = promotion_picker {
+            // While picker is open, consume board clicks.
+            return promotion_action_at(pos, board_rect, orientation, picker);
         }
+
+        return screen_pos_to_square(pos, board_rect, orientation).map(BoardAction::Square);
     }
 
     None

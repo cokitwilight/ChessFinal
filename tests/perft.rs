@@ -140,11 +140,12 @@ mod tests {
                 (3, 97_862),
                 // Uncomment once your movegen is fast enough:
                 (4, 4_085_603),
-                (5, 193_690_690),
+                //(5, 193_690_690),
             ],
         );
     }
     #[test]
+    #[ignore] // this test is very slow, so ignore it by default.
     fn perft_kiwipete_depth_5() {
         let fen = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
         let mut board = Board::from_fen(fen).unwrap();

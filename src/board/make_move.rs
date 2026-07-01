@@ -3,6 +3,7 @@ use crate::board::{
     BLACK_KINGSIDE, BLACK_QUEENSIDE, Board, Move, MoveType, UndoMove, WHITE_KINGSIDE,
     WHITE_QUEENSIDE, piece,
 };
+use crate::eval::pst::{eg_pst_bonus_at, mg_pst_bonus_at};
 use crate::types::{Color, PieceType};
 
 const WHITE_HOME_RANK: u8 = 0;
@@ -52,6 +53,10 @@ impl Board {
             old_fullmove_number: self.fullmove_number,
             old_hash: self.hash,
             old_side_to_move: self.side_to_move,
+            old_material: self.material,
+            old_phase: self.phase,
+            old_mg_pst_bonus: self.mg_pst,
+            old_eg_pst_bonus: self.eg_pst,
         };
 
         // En passant target only lasts for one ply.
@@ -59,22 +64,30 @@ impl Board {
 
         // Remove moving piece from its source square.
         self.remove_piece_hashed(us, moving_piece, mv.from);
+        self.remove_piece_increment(us, moving_piece, mv.from);
 
         // Remove captured piece, including en passant victim.
         if let Some((cap_color, cap_piece, cap_sq)) = captured_piece {
             self.remove_piece_hashed(cap_color, cap_piece, cap_sq);
+            self.remove_piece_increment(cap_color, cap_piece, cap_sq);
         }
 
         // Handle castling rook movement.
         if moving_piece == PieceType::King
             && (mv.kind == MoveType::Castle || file_distance(mv.from, mv.to) == 2)
+        // file distance technically not needed if MoveType::Castle is always used for castling, but this is a safety check
         {
             self.move_castling_rook_hashed(us, mv.from, mv.to);
+            self.move_castling_rook_increment(us, mv.from, mv.to);
         }
 
         // Place piece on destination. Promotion replaces the pawn.
         let placed_piece = mv.promotion.unwrap_or(moving_piece);
         self.add_piece_hashed(us, placed_piece, mv.to);
+        self.add_piece_increment(us, placed_piece, mv.to);
+
+        // TODO: Add/remove piece increment compute phase and material despite the fact that after the move the total phase and material will be the same.
+        // Additionally promotion could mess with material calculations. Ideally add a moved_piece_increment function that takes the from and to squares and handles promotion, but for now this is simpler.
 
         let old_castling_rights = self.castling_rights;
 
@@ -111,7 +124,7 @@ impl Board {
         self.xor_side_to_move_hash();
         self.side_to_move = them;
 
-        self.rebuild_occupancy();
+        // self.rebuild_occupancy();
 
         debug_assert_eq!(
             self.hash,
@@ -223,6 +236,72 @@ impl Board {
 
             _ => {}
         }
+    }
+
+    // *****************************
+    // **** INCREMENTAL UPDATES ****
+    // *****************************
+
+    fn remove_piece_increment(&mut self, color: Color, piece: PieceType, sq: Square) {
+        let piece_value = piece.value();
+        let piece_phase = piece.phase_value();
+        let mg_pst_bonus = mg_pst_bonus_at(color, piece, sq);
+        let eg_pst_bonus = eg_pst_bonus_at(color, piece, sq);
+
+        self.phase -= piece_phase; // phase is updated regardless of color
+
+        if color == Color::White {
+            self.material -= piece_value;
+            self.mg_pst -= mg_pst_bonus;
+            self.eg_pst -= eg_pst_bonus;
+        } else {
+            self.material += piece_value;
+            self.mg_pst += mg_pst_bonus;
+            self.eg_pst += eg_pst_bonus;
+        }
+    }
+
+    fn add_piece_increment(&mut self, color: Color, piece: PieceType, sq: Square) {
+        let piece_value = piece.value();
+        let piece_phase = piece.phase_value();
+        let mg_pst_bonus = mg_pst_bonus_at(color, piece, sq);
+        let eg_pst_bonus = eg_pst_bonus_at(color, piece, sq);
+
+        self.phase += piece_phase; // phase is updated regardless of color
+
+        if color == Color::White {
+            self.material += piece_value;
+            self.mg_pst += mg_pst_bonus;
+            self.eg_pst += eg_pst_bonus;
+        } else {
+            self.material -= piece_value;
+            self.mg_pst -= mg_pst_bonus;
+            self.eg_pst -= eg_pst_bonus;
+        }
+    }
+
+    fn move_castling_rook_increment(&mut self, color: Color, king_from: Square, king_to: Square) {
+        let rank = rank_of(king_from);
+        let kingside = file_of(king_to) > file_of(king_from);
+
+        let rook_from = if kingside {
+            square(7, rank)
+        } else {
+            square(0, rank)
+        };
+
+        let rook_to = if kingside {
+            square(5, rank)
+        } else {
+            square(3, rank)
+        };
+
+        // TODO: Tehcnically phase and material remain the same so this is slightly wasteful, but it is simpler to just call remove and add.
+
+        self.remove_piece_increment(color, PieceType::Rook, rook_from);
+        // self.remove_piece_increment(color, PieceType::King, king_from);
+        self.add_piece_increment(color, PieceType::Rook, rook_to);
+        // self.add_piece_increment(color, PieceType::King, king_to);
     }
 }
 

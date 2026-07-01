@@ -37,6 +37,12 @@ pub struct Zobrist {
     pub en_passant_file: [u64; 8],
 }
 
+impl Default for Zobrist {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Zobrist {
     pub fn new() -> Self {
         let mut rng = SplitMix64::new(0xC0FFEE_12345678);

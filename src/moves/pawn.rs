@@ -259,7 +259,6 @@ pub fn pseudo_pawn_capture_moves(board: &Board, color: Color, moves: &mut MoveLi
     let pawns = board.pieces(color, PieceType::Pawn);
     let occupancy = board.all_occupancy();
     let enemies = board.occupancy_of(color.opposite());
-    let empty = !occupancy;
 
     match color {
         Color::White => {

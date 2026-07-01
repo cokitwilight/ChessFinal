@@ -17,16 +17,16 @@ pub fn pseudo_bishop_moves(board: &Board, color: Color, moves: &mut MoveList) {
 
         while let Some(to) = pop_lsb(&mut captures) {
             moves.push(Move {
-                from: from,
-                to: to,
+                from,
+                to,
                 kind: MoveType::Capture,
                 promotion: None,
             });
         }
         while let Some(to) = pop_lsb(&mut quiets) {
             moves.push(Move {
-                from: from,
-                to: to,
+                from,
+                to,
                 kind: MoveType::Normal,
                 promotion: None,
             });
@@ -85,8 +85,8 @@ pub fn pseudo_bishop_capture_moves(board: &Board, color: Color, moves: &mut Move
 
         while let Some(to) = pop_lsb(&mut captures) {
             moves.push(Move {
-                from: from,
-                to: to,
+                from,
+                to,
                 kind: MoveType::Capture,
                 promotion: None,
             });
@@ -141,16 +141,16 @@ pub fn pseudo_rook_moves(board: &Board, color: Color, moves: &mut MoveList) {
 
         while let Some(to) = pop_lsb(&mut captures) {
             moves.push(Move {
-                from: from,
-                to: to,
+                from,
+                to,
                 kind: MoveType::Capture,
                 promotion: None,
             });
         }
         while let Some(to) = pop_lsb(&mut quiets) {
             moves.push(Move {
-                from: from,
-                to: to,
+                from,
+                to,
                 kind: MoveType::Normal,
                 promotion: None,
             });
@@ -209,8 +209,8 @@ pub fn pseudo_rook_capture_moves(board: &Board, color: Color, moves: &mut MoveLi
 
         while let Some(to) = pop_lsb(&mut captures) {
             moves.push(Move {
-                from: from,
-                to: to,
+                from,
+                to,
                 kind: MoveType::Capture,
                 promotion: None,
             });
@@ -260,16 +260,16 @@ pub fn pseudo_queen_moves(board: &Board, color: Color, moves: &mut MoveList) {
 
         while let Some(to) = pop_lsb(&mut captures) {
             moves.push(Move {
-                from: from,
-                to: to,
+                from,
+                to,
                 kind: MoveType::Capture,
                 promotion: None,
             });
         }
         while let Some(to) = pop_lsb(&mut quiets) {
             moves.push(Move {
-                from: from,
-                to: to,
+                from,
+                to,
                 kind: MoveType::Normal,
                 promotion: None,
             });
@@ -328,8 +328,8 @@ pub fn pseudo_queen_capture_moves(board: &Board, color: Color, moves: &mut MoveL
 
         while let Some(to) = pop_lsb(&mut captures) {
             moves.push(Move {
-                from: from,
-                to: to,
+                from,
+                to,
                 kind: MoveType::Capture,
                 promotion: None,
             });

@@ -3,6 +3,7 @@ use crate::bitboard::{
     queen_attacks, rook_attacks, square_to_algebraic,
 };
 use crate::board::MoveList;
+use crate::eval::phase::MAX_PHASE;
 use crate::game::GameState;
 use crate::moves::all_legal_moves;
 use crate::moves::legal::all_legal_moves_at;
@@ -13,6 +14,7 @@ pub const WHITE_QUEENSIDE: u8 = 0b0010;
 pub const BLACK_KINGSIDE: u8 = 0b0100;
 pub const BLACK_QUEENSIDE: u8 = 0b1000;
 
+#[derive(Clone, PartialEq, Eq)]
 pub struct Board {
     pub pieces: [[Bitboard; 6]; 2],
     pub occupancy: [Bitboard; 2],
@@ -29,6 +31,14 @@ pub struct Board {
     pub fullmove_number: u16,
 
     pub hash: u64,
+
+    pub material: i32,
+
+    pub phase: i32,
+
+    pub mg_pst: i32,
+
+    pub eg_pst: i32,
 }
 
 impl Board {
@@ -48,6 +58,10 @@ impl Board {
             halfmove_clock: 0,
             fullmove_number: 1,
             hash: 0,
+            material: 0, // in centi pawns
+            phase: 24,   // 24 is the default
+            mg_pst: 0,
+            eg_pst: 0,
         }
     }
 
@@ -93,6 +107,22 @@ impl Board {
         self.hash
     }
 
+    pub fn material(&self) -> i32 {
+        self.material
+    }
+
+    pub fn phase(&self) -> i32 {
+        self.phase
+    }
+
+    pub fn mg_pst(&self) -> i32 {
+        self.mg_pst
+    }
+
+    pub fn eg_pst(&self) -> i32 {
+        self.eg_pst
+    }
+
     // *****************
     // **** SETTERS ****
     // *****************
@@ -127,6 +157,39 @@ impl Board {
         self.pieces[color.idx()][piece.idx()] &= !m;
         self.occupancy[color.idx()] &= !m;
         self.all_occupancy &= !m;
+    }
+
+    pub fn update_material_and_phase(&mut self) {
+        let mut material = 0;
+        let mut phase = 0;
+
+        for color in COLORS {
+            let sign = match color {
+                Color::White => 1,
+                Color::Black => -1,
+            };
+
+            let pawns = self.pieces(color, PieceType::Pawn).count_ones() as i32;
+            let knights = self.pieces(color, PieceType::Knight).count_ones() as i32;
+            let bishops = self.pieces(color, PieceType::Bishop).count_ones() as i32;
+            let rooks = self.pieces(color, PieceType::Rook).count_ones() as i32;
+            let queens = self.pieces(color, PieceType::Queen).count_ones() as i32;
+
+            material +=
+                sign * (100 * pawns + 310 * knights + 330 * bishops + 500 * rooks + 900 * queens);
+
+            phase += knights + bishops + 2 * rooks + 4 * queens;
+        }
+
+        phase = phase.min(MAX_PHASE);
+
+        let mg_pst_bonus = crate::eval::pst::mg_pst_bonus(self);
+        let eg_pst_bonus = crate::eval::pst::eg_pst_bonus(self);
+
+        self.material = material;
+        self.phase = phase;
+        self.mg_pst = mg_pst_bonus;
+        self.eg_pst = eg_pst_bonus;
     }
     // *************************
     // **** MOVE GENERATION ****

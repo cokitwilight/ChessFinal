@@ -15,6 +15,11 @@ pub struct UndoMove {
     pub old_fullmove_number: u16,
     pub old_hash: u64,
     pub old_side_to_move: Color,
+
+    pub old_material: i32,
+    pub old_phase: i32,
+    pub old_mg_pst_bonus: i32,
+    pub old_eg_pst_bonus: i32,
 }
 
 impl Board {
@@ -27,6 +32,12 @@ impl Board {
         self.en_passant = undo.old_en_passant;
         self.halfmove_clock = undo.old_halfmove_clock;
         self.fullmove_number = undo.old_fullmove_number;
+
+        // Restore material and phase.
+        self.material = undo.old_material;
+        self.phase = undo.old_phase;
+        self.mg_pst = undo.old_mg_pst_bonus;
+        self.eg_pst = undo.old_eg_pst_bonus;
 
         let placed_piece = mv.promotion.unwrap_or(undo.moved_piece);
 
