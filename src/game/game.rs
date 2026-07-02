@@ -113,6 +113,10 @@ impl Game {
     pub fn state(&self) -> GameState {
         self.state
     }
+
+    pub fn repetition_history(&self) -> &Vec<u64> {
+        &self.repetition_history
+    }
 }
 
 // HELPER

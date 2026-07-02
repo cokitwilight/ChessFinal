@@ -31,7 +31,6 @@ pub struct Board {
     pub fullmove_number: u16,
 
     pub hash: u64,
-
     pub material: i32,
 
     pub phase: i32,
@@ -186,10 +185,10 @@ impl Board {
         let mg_pst_bonus = crate::eval::pst::mg_pst_bonus(self);
         let eg_pst_bonus = crate::eval::pst::eg_pst_bonus(self);
 
-        self.material = material;
-        self.phase = phase;
-        self.mg_pst = mg_pst_bonus;
-        self.eg_pst = eg_pst_bonus;
+        // self.material = material;
+        // self.phase = phase;
+        // self.mg_pst = mg_pst_bonus;
+        // self.eg_pst = eg_pst_bonus;
     }
     // *************************
     // **** MOVE GENERATION ****
@@ -201,12 +200,23 @@ impl Board {
         legal_moves
     }
 
+    pub fn all_legal_moves(&mut self) -> MoveList {
+        let mut legal_moves = MoveList::new();
+        all_legal_moves(self, self.side_to_move, &mut legal_moves);
+        legal_moves
+    }
+
     pub fn legal_moves_at(&mut self, sq: Square, color: Color) -> MoveList {
         let mut legal_moves = MoveList::new();
         all_legal_moves_at(self, color, sq, &mut legal_moves);
         legal_moves
     }
 
+    pub fn all_legal_moves_at(&mut self, sq: Square) -> MoveList {
+        let mut legal_moves = MoveList::new();
+        all_legal_moves_at(self, self.side_to_move, sq, &mut legal_moves);
+        legal_moves
+    }
     // ********************
     // **** GAME STATE ****
     // ********************
@@ -216,9 +226,9 @@ impl Board {
         let legal_moves = self.legal_moves(side_to_move);
 
         if legal_moves.is_empty() {
-            if self.in_check(self.side_to_move()) {
+            if self.in_check(side_to_move) {
                 return GameState::Checkmate {
-                    winner: self.side_to_move().opposite(),
+                    winner: side_to_move.opposite(),
                 };
             } else {
                 return GameState::Stalemate;

@@ -15,7 +15,6 @@ pub struct UndoMove {
     pub old_fullmove_number: u16,
     pub old_hash: u64,
     pub old_side_to_move: Color,
-
     pub old_material: i32,
     pub old_phase: i32,
     pub old_mg_pst_bonus: i32,

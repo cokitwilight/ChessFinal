@@ -4,7 +4,7 @@ use crate::board::{
     WHITE_QUEENSIDE, piece,
 };
 use crate::eval::pst::{eg_pst_bonus_at, mg_pst_bonus_at};
-use crate::types::{Color, PieceType};
+use crate::types::{COLORS, Color, PieceType};
 
 const WHITE_HOME_RANK: u8 = 0;
 const BLACK_HOME_RANK: u8 = 7;
@@ -137,7 +137,7 @@ impl Board {
     pub fn rebuild_occupancy(&mut self) {
         self.occupancy = [0; 2];
 
-        for color in [Color::White, Color::Black] {
+        for color in COLORS {
             let c = color.idx();
 
             let mut occ = 0;
