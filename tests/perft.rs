@@ -73,6 +73,52 @@ pub fn bench_perft(name: &str, fen: &str, depth: usize, expected: u64) {
     board.assert_hash();
 }
 
+pub fn bench_perft_repeated(name: &str, fen: &str, depth: u32, runs: usize) {
+    let mut results = Vec::new();
+    let mut expected_nodes = None;
+
+    // Warmup
+    {
+        let mut board = Board::from_fen(fen).unwrap();
+        let _ = perft(&mut board, 1);
+    }
+
+    for _ in 0..runs {
+        let mut board = Board::from_fen(fen).unwrap();
+
+        let start = Instant::now();
+        let nodes = perft(&mut board, depth as usize);
+        let elapsed = start.elapsed();
+
+        if let Some(expected) = expected_nodes {
+            assert_eq!(nodes, expected, "Perft node count changed between runs");
+        } else {
+            expected_nodes = Some(nodes);
+        }
+
+        results.push((nodes, elapsed.as_secs_f64()));
+    }
+
+    let nodes = expected_nodes.unwrap();
+    let avg_time = results.iter().map(|(_, t)| t).sum::<f64>() / runs as f64;
+    let best_time = results
+        .iter()
+        .map(|(_, t)| *t)
+        .fold(f64::INFINITY, f64::min);
+
+    let avg_nps = nodes as f64 / avg_time;
+    let best_nps = nodes as f64 / best_time;
+
+    println!("Position: {name}");
+    println!("Depth: {depth}");
+    println!("Nodes: {nodes}");
+    println!("Runs: {runs}");
+    println!("Avg time: {:.3}s", avg_time);
+    println!("Best time: {:.3}s", best_time);
+    println!("Avg NPS: {:.2}M", avg_nps / 1_000_000.0);
+    println!("Best NPS: {:.2}M", best_nps / 1_000_000.0);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -264,6 +310,16 @@ mod tests {
                 // (4, 3_894_594),
                 // (5, 164_075_551),
             ],
+        );
+    }
+
+    #[test]
+    fn perft_bench_kiwipete() {
+        bench_perft_repeated(
+            "Kiwipete",
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+            4,
+            5,
         );
     }
 }

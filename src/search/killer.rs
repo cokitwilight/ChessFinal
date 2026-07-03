@@ -19,7 +19,7 @@ impl KillerTable {
     pub fn new() -> Self {
         Self::default()
     }
-    
+
     pub fn add(&mut self, ply: usize, mv: Move) {
         if ply >= MAX_PLY {
             return;
