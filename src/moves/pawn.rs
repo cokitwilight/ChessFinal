@@ -307,7 +307,6 @@ pub fn pseudo_pawn_moves_at(board: &Board, color: Color, sq: Square, moves: &mut
 
 pub fn pseudo_pawn_capture_moves(board: &Board, color: Color, moves: &mut MoveList) {
     let pawns = board.pieces(color, PieceType::Pawn);
-    let occupancy = board.all_occupancy();
     let enemies = board.occupancy_of(color.opposite());
 
     match color {

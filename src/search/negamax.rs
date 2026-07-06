@@ -1,10 +1,20 @@
+use eframe::egui::ImageFit::Exact;
+
 use crate::{
-    board::{Board, Move, mv},
+    board::{Board, Move, MoveType, mv},
     eval::eval::evaluation_for_turn,
-    search::engine::{Engine, SearchContext},
+    search::{
+        engine::{Engine, SearchContext},
+        tt::{TTEntry, TTFlag},
+    },
 };
 
 pub const CHECKMATE_SCORE: i32 = 100000;
+
+pub const NEG_INF: i32 = -1_000_000_000;
+pub const POS_INF: i32 = 1_000_000_000;
+
+pub const MAX_Q_DEPTH: usize = 5;
 
 impl Engine {
     // Implementation for negamax function
@@ -17,26 +27,66 @@ impl Engine {
         mut beta: i32,
         ply: usize,
     ) -> i32 {
-        // Placeholder for the actual negamax implementation
-        // This function should implement the negamax search algorithm
-        // and return the evaluation score for the given board state.
         context.stats.nodes += 1;
 
         // ADD DRAWING LOGIC HERE
 
-        if depth == 0 {
-            // Placeholder for quiescence search or evaluation function
-            return evaluation_for_turn(board); // Replace with actual evaluation
+        if Engine::repetition_in_search(context, board.hash(), board.halfmove_clock() as usize) {
+            return 0;
         }
 
-        let mut max_eval = i32::MIN;
-        let mut best_move: Option<Move> = None;
+        if board.halfmove_clock() >= 100 {
+            // 50 move rule
+            return 0;
+        }
 
+        // add insufficient material check here
+
+        if depth == 0 {
+            // Placeholder for quiescence search or evaluation function
+            return self.quiescence(board, context, MAX_Q_DEPTH, alpha, beta, ply);
+        }
+
+        let original_alpha = alpha;
+        // let original_beta = beta;
+
+        let mut tt_best_move: Option<Move> = None;
+
+        context.stats.tt.probes += 1;
+
+        if let Some(entry) = self.tt.get(board.hash) {
+            debug_assert_eq!(
+                entry.hash, board.hash,
+                "TT hash mismatch: key matched but entry.hash differed. negamax.rs"
+            );
+            context.stats.tt.hits += 1;
+
+            tt_best_move = entry.best_move;
+
+            if entry.depth >= depth {
+                context.stats.tt.usable_hits += 1;
+
+                match entry.flag {
+                    TTFlag::Exact => {
+                        context.stats.tt.exact_returns += 1;
+                        return entry.eval;
+                    }
+                    TTFlag::LowerBound => {
+                        alpha = alpha.max(entry.eval);
+                    }
+                    TTFlag::UpperBound => {
+                        beta = beta.min(entry.eval);
+                    }
+                }
+                if alpha >= beta {
+                    context.stats.tt.bound_cutoffs += 1;
+                    return entry.eval;
+                }
+            }
+        }
         let mut moves = board.all_legal_moves();
 
         let side_to_move = board.side_to_move();
-
-        // ADD MOVE ORDERING HERE
 
         if moves.is_empty() {
             if board.in_check(side_to_move) {
@@ -46,20 +96,37 @@ impl Engine {
             }
         }
 
+        self.order_moves(
+            board,
+            &mut moves,
+            side_to_move,
+            ply,
+            context,
+            None,
+            tt_best_move,
+        );
+
+        let mut max_eval = NEG_INF;
+        let mut best_move: Option<Move> = None;
+
+        let mut did_cutoff = false;
+
         for (move_index, mv) in moves.iter().enumerate() {
-            // Use later for move ordering and heuristics
-            // let parent_hash = board.hash;
-            // let in_check = board.in_check();
-            // let quiet = Engine::is_quiet_move(*mv);
+            // TODO: move index for lmr
+
             // let gives_check = board.in_check();
 
-            // Move index used for lmr
+            let parent_hash = board.hash;
+            let in_check = board.in_check(board.side_to_move());
 
             let undo = board.make_move(*mv);
+            context.repetition_history.push(parent_hash);
+            // add history here
 
             let eval = -self.negamax(board, context, depth - 1, -beta, -alpha, ply + 1);
 
             board.undo_move(undo);
+            context.repetition_history.pop();
 
             if eval > max_eval {
                 max_eval = eval;
@@ -70,11 +137,36 @@ impl Engine {
 
             if alpha >= beta {
                 // ADD KILLER MOVE AND HISTORY HEURISTIC HERE
+                did_cutoff = true;
+                if mv.kind == MoveType::Normal || mv.kind == MoveType::Castle {
+                    // quiet move
+                    self.history.add_bonus(side_to_move, mv.from, mv.to, depth);
+                    context.killer_moves.add(ply, *mv);
+                }
                 break;
             }
         }
 
         // Store the best move in the search context for later use
+
+        let flag = if max_eval <= original_alpha {
+            TTFlag::UpperBound
+        } else if did_cutoff {
+            TTFlag::LowerBound
+        } else {
+            TTFlag::Exact
+        };
+
+        self.tt.insert(
+            board.hash,
+            TTEntry {
+                hash: board.hash,
+                depth,
+                eval: max_eval,
+                best_move,
+                flag,
+            },
+        );
 
         max_eval
     }

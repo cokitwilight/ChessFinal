@@ -1,18 +1,18 @@
 use crate::board::{Board, Move};
+use crate::search::tt::TTEntry;
 use crate::search::{HistoryTable, KillerTable, TranspositionTable};
+
+use num_format::{Locale, ToFormattedString};
 
 #[derive(Clone, Debug)]
 pub struct Engine {
-    // LATER
-    // pub tt: TranspositionTable<TTEntry>,
-    // pub qtt: TranspositionTable<QTTEntry>,
-
+    pub tt: TranspositionTable<TTEntry>,
+    pub qtt: TranspositionTable<TTEntry>,
     // pub opening_book: OpeningBook,
     // Evaluator can be used for dynamic pst values or different evaluation values(favor aggressive play, favor defensive play, etc)
     //pub evaluator: Evaluator,
     pub history: HistoryTable,
     // pub killer_moves: KillerTable,
-
     // Later for options, such as search depth, time limit, elo rating, etc.
     // pub options: EngineOptions,
 }
@@ -20,8 +20,8 @@ pub struct Engine {
 impl Engine {
     pub fn new() -> Self {
         Self {
-            // tt: TranspositionTable::new(64), // 64 MB
-            // qtt: TranspositionTable::new(16), // 16 MB
+            tt: TranspositionTable::new(64),  // 64 MB
+            qtt: TranspositionTable::new(16), // 16 MB
             history: HistoryTable::new(),
             // killer_moves: KillerTable::default(),
         }
@@ -60,7 +60,6 @@ pub struct SearchContext {
 
     pub start_time: std::time::Instant,
     pub stopped: bool,
-    pub ply: usize,
 }
 
 impl SearchContext {
@@ -72,7 +71,6 @@ impl SearchContext {
             repetition_history,
             start_time: std::time::Instant::now(),
             stopped: false,
-            ply: 0,
         }
     }
 
@@ -110,6 +108,36 @@ pub struct SearchStats {
     pub fifty_returns: u64,
 }
 
+impl SearchStats {
+    pub fn print_all(&self, number: usize) {
+        println!("{}. Stats:", number);
+        self.print_nodes();
+        self.print_returns();
+        self.print_tts();
+        print!("\n");
+    }
+    pub fn print_nodes(&self) {
+        println!(
+            "Nodes: {}. Qnodes: {}",
+            self.nodes.to_formatted_string(&Locale::en),
+            self.qnodes.to_formatted_string(&Locale::en)
+        );
+    }
+    pub fn print_tts(&self) {
+        println!("Negamax Transposition Table:");
+        self.tt.print_stats();
+        println!("Quiescence Transposition Table:");
+        self.qtt.print_stats();
+    }
+    pub fn print_returns(&self) {
+        println!(
+            "Repetition Returns: {}. Fifty Returns: {}",
+            self.repetition_returns.to_formatted_string(&Locale::en),
+            self.fifty_returns.to_formatted_string(&Locale::en)
+        );
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct TableStats {
     pub probes: u64,
@@ -117,6 +145,22 @@ pub struct TableStats {
     pub usable_hits: u64,
     pub exact_returns: u64,
     pub bound_cutoffs: u64,
+}
+
+impl TableStats {
+    pub fn print_stats(&self) {
+        println!("Probes: {}", self.probes.to_formatted_string(&Locale::en));
+        println!(
+            "Hits: {}. Usable Hits: {}",
+            self.hits.to_formatted_string(&Locale::en),
+            self.usable_hits.to_formatted_string(&Locale::en)
+        );
+        println!(
+            "Exact Returns: {}. Bound cutoffs: {}",
+            self.exact_returns.to_formatted_string(&Locale::en),
+            self.bound_cutoffs.to_formatted_string(&Locale::en)
+        );
+    }
 }
 
 #[derive(Clone, Copy, Debug)]

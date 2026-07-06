@@ -1,5 +1,6 @@
 use crate::bitboard::Square;
 use crate::types::PieceType;
+use std::cmp::Reverse;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[repr(u8)]
@@ -81,6 +82,13 @@ impl MoveList {
 
     pub fn iter(&self) -> std::slice::Iter<'_, Move> {
         self.as_slice().iter()
+    }
+
+    pub fn sort_by_score<F>(&mut self, mut score: F)
+    where
+        F: FnMut(Move) -> i32,
+    {
+        self.moves[..self.len].sort_by_key(|mv| Reverse(score(*mv)));
     }
 }
 

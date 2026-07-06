@@ -24,8 +24,9 @@ pub struct TranspositionTable<Entry> {
 
 impl<Entry> TranspositionTable<Entry> {
     pub fn new(_mb: usize) -> Self {
+        // implement size in mb
         Self {
-            table: HashMap::new(),
+            table: HashMap::with_capacity(_mb),
         }
     }
 

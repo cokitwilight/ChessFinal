@@ -12,7 +12,7 @@ use crate::ui::bot_thread::{BotSearchRequest, BotSearchResponse};
 
 use eframe::egui;
 
-const DEFAULT_BOT_DEPTH: usize = 4; // for now
+const DEFAULT_BOT_DEPTH: usize = 6; // for now
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BoardOrientation {
@@ -695,8 +695,9 @@ impl ChessApp {
                 repetition_history,
                 mut engine,
             } = request;
-
+            println!("----------- Start -----------");
             let result = engine.search(&board, limits, &repetition_history);
+            println!("------------ End ------------");
 
             let _ = tx.send(BotSearchResponse { engine, result });
         });

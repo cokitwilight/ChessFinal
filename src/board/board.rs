@@ -5,8 +5,9 @@ use crate::bitboard::{
 use crate::board::MoveList;
 use crate::eval::phase::MAX_PHASE;
 use crate::game::GameState;
-use crate::moves::all_legal_moves;
-use crate::moves::legal::all_legal_moves_at;
+use crate::moves::legal::{all_legal_capture_moves, all_legal_moves_at};
+use crate::moves::pseudo::all_pseudo_capture_moves;
+use crate::moves::{all_legal_moves, all_pseudo_moves};
 use crate::types::{COLORS, Color, PIECE_TYPES, Piece, PieceType};
 
 pub const WHITE_KINGSIDE: u8 = 0b0001;
@@ -122,6 +123,10 @@ impl Board {
         self.eg_pst
     }
 
+    pub fn halfmove_clock(&self) -> u16 {
+        self.halfmove_clock
+    }
+
     // *****************
     // **** SETTERS ****
     // *****************
@@ -185,10 +190,10 @@ impl Board {
         let mg_pst_bonus = crate::eval::pst::mg_pst_bonus(self);
         let eg_pst_bonus = crate::eval::pst::eg_pst_bonus(self);
 
-        // self.material = material;
-        // self.phase = phase;
-        // self.mg_pst = mg_pst_bonus;
-        // self.eg_pst = eg_pst_bonus;
+        self.material = material;
+        self.phase = phase;
+        self.mg_pst = mg_pst_bonus;
+        self.eg_pst = eg_pst_bonus;
     }
     // *************************
     // **** MOVE GENERATION ****
@@ -204,6 +209,24 @@ impl Board {
         let mut legal_moves = MoveList::new();
         all_legal_moves(self, self.side_to_move, &mut legal_moves);
         legal_moves
+    }
+
+    pub fn all_pseudo_moves(&mut self) -> MoveList {
+        let mut pseudo_moves = MoveList::new();
+        all_pseudo_moves(self, self.side_to_move, &mut pseudo_moves);
+        pseudo_moves
+    }
+
+    pub fn all_legal_capture_moves(&mut self) -> MoveList {
+        let mut captures = MoveList::new();
+        all_legal_capture_moves(self, self.side_to_move, &mut captures);
+        captures
+    }
+
+    pub fn all_pseudo_capture_moves(&mut self) -> MoveList {
+        let mut pseudo_moves = MoveList::new();
+        all_pseudo_capture_moves(self, self.side_to_move, &mut pseudo_moves);
+        pseudo_moves
     }
 
     pub fn legal_moves_at(&mut self, sq: Square, color: Color) -> MoveList {

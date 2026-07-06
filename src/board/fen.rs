@@ -120,7 +120,7 @@ impl Board {
         board.assert_hash();
 
         // TODO: Fix this later to not use clone
-        // board.update_material_and_phase();
+        board.update_material_and_phase();
 
         Ok(board)
     }
@@ -177,169 +177,169 @@ fn parse_castling_rights(s: &str) -> Result<u8, String> {
     Ok(rights)
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use crate::board::{Board, MoveType};
-//     use crate::eval::material::calculate_material;
-//     use crate::eval::phase::calculate_phase;
-//     use crate::eval::pst::{eg_pst_bonus, mg_pst_bonus};
+#[cfg(test)]
+mod tests {
+    use crate::board::{Board, MoveType};
+    use crate::eval::material::calculate_material;
+    use crate::eval::phase::calculate_phase;
+    use crate::eval::pst::{eg_pst_bonus, mg_pst_bonus};
 
-//     fn assert_material_matches_recompute(board: &Board) {
-//         assert_eq!(
-//             board.material(),
-//             calculate_material(board),
-//             "cached material does not match full recomputation"
-//         );
-//     }
+    fn assert_material_matches_recompute(board: &Board) {
+        assert_eq!(
+            board.material(),
+            calculate_material(board),
+            "cached material does not match full recomputation"
+        );
+    }
 
-//     fn assert_phase_matches_recompute(board: &Board) {
-//         assert_eq!(
-//             board.phase(),
-//             calculate_phase(board),
-//             "cached phase does not match full recomputation"
-//         );
-//     }
+    fn assert_phase_matches_recompute(board: &Board) {
+        assert_eq!(
+            board.phase(),
+            calculate_phase(board),
+            "cached phase does not match full recomputation"
+        );
+    }
 
-//     fn assert_mg_pst_matches_recompute(board: &Board) {
-//         assert_eq!(
-//             board.mg_pst(),
-//             mg_pst_bonus(board),
-//             "cached middlegame PST does not match full recomputation"
-//         );
-//     }
+    fn assert_mg_pst_matches_recompute(board: &Board) {
+        assert_eq!(
+            board.mg_pst(),
+            mg_pst_bonus(board),
+            "cached middlegame PST does not match full recomputation"
+        );
+    }
 
-//     fn assert_eg_pst_matches_recompute(board: &Board) {
-//         assert_eq!(
-//             board.eg_pst(),
-//             eg_pst_bonus(board),
-//             "cached endgame PST does not match full recomputation"
-//         );
-//     }
+    fn assert_eg_pst_matches_recompute(board: &Board) {
+        assert_eq!(
+            board.eg_pst(),
+            eg_pst_bonus(board),
+            "cached endgame PST does not match full recomputation"
+        );
+    }
 
-//     fn assert_eval_state_matches_recompute(board: &Board) {
-//         assert_material_matches_recompute(board);
-//         assert_phase_matches_recompute(board);
-//         assert_mg_pst_matches_recompute(board);
-//         assert_eg_pst_matches_recompute(board);
-//     }
+    fn assert_eval_state_matches_recompute(board: &Board) {
+        assert_material_matches_recompute(board);
+        assert_phase_matches_recompute(board);
+        assert_mg_pst_matches_recompute(board);
+        assert_eg_pst_matches_recompute(board);
+    }
 
-//     const TEST_FENS: &[&str] = &[
-//         // Starting position
-//         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-//         // Kiwipete: castling rights, mixed pieces, tactical position
-//         "r3k2r/p1ppqpb1/bn2pnp1/2pPN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-//         // Simple castling test position
-//         "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
-//         // En passant available: white can play e5xd6 en passant
-//         "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1",
-//         // Promotion available
-//         "7k/P7/8/8/8/8/7p/4K3 w - - 0 1",
-//         // More imbalanced material
-//         "2r2rk1/pp3ppp/2n1pn2/q2p4/3P4/2PBPN2/PPQ2PPP/R4RK1 w - - 0 1",
-//     ];
+    const TEST_FENS: &[&str] = &[
+        // Starting position
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+        // Kiwipete: castling rights, mixed pieces, tactical position
+        "r3k2r/p1ppqpb1/bn2pnp1/2pPN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        // Simple castling test position
+        "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
+        // En passant available: white can play e5xd6 en passant
+        "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1",
+        // Promotion available
+        "7k/P7/8/8/8/8/7p/4K3 w - - 0 1",
+        // More imbalanced material
+        "2r2rk1/pp3ppp/2n1pn2/q2p4/3P4/2PBPN2/PPQ2PPP/R4RK1 w - - 0 1",
+    ];
 
-//     #[test]
-//     fn from_fen_initializes_eval_state_correctly() {
-//         for fen in TEST_FENS {
-//             let board = Board::from_fen(fen).unwrap();
+    #[test]
+    fn from_fen_initializes_eval_state_correctly() {
+        for fen in TEST_FENS {
+            let board = Board::from_fen(fen).unwrap();
 
-//             assert_eval_state_matches_recompute(&board);
-//         }
-//     }
+            assert_eval_state_matches_recompute(&board);
+        }
+    }
 
-//     #[test]
-//     fn make_and_undo_preserve_incremental_eval_state() {
-//         for fen in TEST_FENS {
-//             let mut board = Board::from_fen(fen).unwrap();
+    #[test]
+    fn make_and_undo_preserve_incremental_eval_state() {
+        for fen in TEST_FENS {
+            let mut board = Board::from_fen(fen).unwrap();
 
-//             assert_eval_state_matches_recompute(&board);
+            assert_eval_state_matches_recompute(&board);
 
-//             let original_material = board.material();
-//             let original_phase = board.phase();
-//             let original_mg_pst = board.mg_pst();
-//             let original_eg_pst = board.eg_pst();
+            let original_material = board.material();
+            let original_phase = board.phase();
+            let original_mg_pst = board.mg_pst();
+            let original_eg_pst = board.eg_pst();
 
-//             let moves = board.legal_moves(board.side_to_move());
+            let moves = board.legal_moves(board.side_to_move());
 
-//             for mv in moves.iter().copied() {
-//                 let undo = board.make_move(mv);
+            for mv in moves.iter().copied() {
+                let undo = board.make_move(mv);
 
-//                 assert_eval_state_matches_recompute(&board);
+                assert_eval_state_matches_recompute(&board);
 
-//                 board.undo_move(undo);
+                board.undo_move(undo);
 
-//                 assert_eval_state_matches_recompute(&board);
+                assert_eval_state_matches_recompute(&board);
 
-//                 assert_eq!(
-//                     board.material(),
-//                     original_material,
-//                     "material was not restored after undo"
-//                 );
-//                 assert_eq!(
-//                     board.phase(),
-//                     original_phase,
-//                     "phase was not restored after undo"
-//                 );
-//                 assert_eq!(
-//                     board.mg_pst(),
-//                     original_mg_pst,
-//                     "middlegame PST was not restored after undo"
-//                 );
-//                 assert_eq!(
-//                     board.eg_pst(),
-//                     original_eg_pst,
-//                     "endgame PST was not restored after undo"
-//                 );
-//             }
-//         }
-//     }
+                assert_eq!(
+                    board.material(),
+                    original_material,
+                    "material was not restored after undo"
+                );
+                assert_eq!(
+                    board.phase(),
+                    original_phase,
+                    "phase was not restored after undo"
+                );
+                assert_eq!(
+                    board.mg_pst(),
+                    original_mg_pst,
+                    "middlegame PST was not restored after undo"
+                );
+                assert_eq!(
+                    board.eg_pst(),
+                    original_eg_pst,
+                    "endgame PST was not restored after undo"
+                );
+            }
+        }
+    }
 
-//     #[test]
-//     fn special_moves_update_incremental_eval_correctly() {
-//         let special_positions = [
-//             (
-//                 "castling",
-//                 "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
-//                 MoveType::Castle,
-//             ),
-//             (
-//                 "en passant",
-//                 "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1",
-//                 MoveType::EnPassant,
-//             ),
-//             (
-//                 "promotion",
-//                 "7k/P7/8/8/8/8/7p/4K3 w - - 0 1",
-//                 MoveType::Normal,
-//             ),
-//         ];
+    #[test]
+    fn special_moves_update_incremental_eval_correctly() {
+        let special_positions = [
+            (
+                "castling",
+                "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1",
+                MoveType::Castle,
+            ),
+            (
+                "en passant",
+                "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1",
+                MoveType::EnPassant,
+            ),
+            (
+                "promotion",
+                "7k/P7/8/8/8/8/7p/4K3 w - - 0 1",
+                MoveType::Normal,
+            ),
+        ];
 
-//         for (name, fen, expected_kind) in special_positions {
-//             let mut board = Board::from_fen(fen).unwrap();
-//             let moves = board.legal_moves(board.side_to_move());
+        for (name, fen, expected_kind) in special_positions {
+            let mut board = Board::from_fen(fen).unwrap();
+            let moves = board.legal_moves(board.side_to_move());
 
-//             let mut saw_expected_move = false;
+            let mut saw_expected_move = false;
 
-//             for mv in moves.iter().copied() {
-//                 if mv.kind != expected_kind {
-//                     continue;
-//                 }
+            for mv in moves.iter().copied() {
+                if mv.kind != expected_kind {
+                    continue;
+                }
 
-//                 saw_expected_move = true;
+                saw_expected_move = true;
 
-//                 let undo = board.make_move(mv);
+                let undo = board.make_move(mv);
 
-//                 assert_eval_state_matches_recompute(&board);
+                assert_eval_state_matches_recompute(&board);
 
-//                 board.undo_move(undo);
+                board.undo_move(undo);
 
-//                 assert_eval_state_matches_recompute(&board);
-//             }
+                assert_eval_state_matches_recompute(&board);
+            }
 
-//             assert!(
-//                 saw_expected_move,
-//                 "test position did not generate expected special move: {name}"
-//             );
-//         }
-//     }
-// }
+            assert!(
+                saw_expected_move,
+                "test position did not generate expected special move: {name}"
+            );
+        }
+    }
+}
