@@ -84,7 +84,7 @@ impl Engine {
                 }
             }
         }
-        let mut moves = board.all_legal_moves();
+        let mut moves = board.all_pseudo_moves();
 
         let side_to_move = board.side_to_move();
 
@@ -120,6 +120,12 @@ impl Engine {
             let in_check = board.in_check(board.side_to_move());
 
             let undo = board.make_move(*mv);
+            let illegal = board.in_check(side_to_move);
+
+            if illegal {
+                board.undo_move(undo);
+                continue;
+            }
             context.repetition_history.push(parent_hash);
             // add history here
 

@@ -31,6 +31,7 @@ impl Engine {
         let original_alpha = alpha;
         let original_beta = beta;
         let hash = board.hash();
+        let side_to_move = board.side_to_move();
 
         let mut tt_best_move: Option<Move> = None;
 
@@ -75,7 +76,7 @@ impl Engine {
         let mut best_score = NEG_INF;
         let mut best_move: Option<Move> = None;
 
-        let raw_moves = if in_check {
+        let mut raw_moves = if in_check {
             let evasions = board.all_legal_moves();
 
             if evasions.is_empty() {
@@ -159,6 +160,15 @@ impl Engine {
         };
 
         // do move ordering here
+        self.order_moves(
+            board,
+            &mut raw_moves,
+            side_to_move,
+            ply,
+            context,
+            None,
+            tt_best_move,
+        );
 
         for mv in raw_moves.iter() {
             // add see pruning and delta pruning here
@@ -219,194 +229,3 @@ impl Engine {
         best_score
     }
 }
-
-// fn quiescence(
-//     &mut self,
-//     board: &mut Board,
-//     mut alpha: i32,
-//     mut beta: i32,
-//     q_depth: usize,
-//     search_history: &mut Vec<u64>,
-//     q_ply: usize,
-// ) -> i32 {
-//     self.qnodes += 1;
-
-//     if self.is_repetition_in_search(search_history, board.hash) || board.is_fifty_move_draw() {
-//         return 0;
-//     }
-
-//     let original_alpha = alpha;
-//     let original_beta = beta;
-//     let hash = board.hash;
-
-//     let mut tt_best_move: Option<Move> = None;
-
-//     // Probe quiescence TT.
-//     self.qtt_probes += 1;
-
-//     if let Some(entry) = self.qtt.get(&hash) {
-//         debug_assert_eq!(
-//             entry.hash, hash,
-//             "QTT hash mismatch: key matched but entry.hash differed"
-//         );
-
-//         self.qtt_hits += 1;
-//         tt_best_move = entry.best_move;
-
-//         if entry.q_depth >= q_depth {
-//             self.qtt_usable_hits += 1;
-
-//             match entry.flag {
-//                 TTFlag::Exact => {
-//                     self.qtt_exact_returns += 1;
-//                     return entry.eval;
-//                 }
-
-//                 TTFlag::LowerBound => {
-//                     alpha = alpha.max(entry.eval);
-//                 }
-
-//                 TTFlag::UpperBound => {
-//                     beta = beta.min(entry.eval);
-//                 }
-//             }
-
-//             if alpha >= beta {
-//                 self.qtt_bound_cutoffs += 1;
-//                 return entry.eval;
-//             }
-//         }
-//     }
-
-//     let in_check = board.in_check();
-
-//     let mut best_score = NEG_INF;
-//     let mut best_move: Option<Move> = None;
-
-//     // let mut stand_pat = NEG_INF;
-
-//     let raw_moves = if in_check {
-//         let evasions = board.all_legal_moves();
-
-//         if evasions.is_empty() {
-//             let score = -CHECKMATE_SCORE + q_ply as i32;
-
-//             self.store_qtt(hash, q_depth, score, TTFlag::Exact, None);
-
-//             return score;
-//         }
-
-//         if q_depth == 0 {
-//             let score = self.evaluation_for_turn(board);
-
-//             let flag = if score <= original_alpha {
-//                 TTFlag::UpperBound
-//             } else if score >= original_beta {
-//                 TTFlag::LowerBound
-//             } else {
-//                 TTFlag::Exact
-//             };
-
-//             self.store_qtt(hash, q_depth, score, flag, None);
-
-//             return score;
-//         }
-
-//         evasions
-//     } else {
-//         let stand_pat = self.evaluation_for_turn(board);
-//         best_score = stand_pat;
-
-//         if stand_pat >= beta {
-//             self.store_qtt(hash, q_depth, stand_pat, TTFlag::LowerBound, None);
-//             return stand_pat;
-//         }
-
-//         if alpha < stand_pat {
-//             alpha = stand_pat;
-//         }
-
-//         if q_depth == 0 {
-//             let score = self.evaluation_for_turn(board);
-
-//             let flag = if score <= original_alpha {
-//                 TTFlag::UpperBound
-//             } else if score >= original_beta {
-//                 TTFlag::LowerBound
-//             } else {
-//                 TTFlag::Exact
-//             };
-
-//             self.store_qtt(hash, q_depth, stand_pat, flag, None);
-
-//             return stand_pat;
-//         }
-
-//         board.all_legal_capture_moves() // returns promotions, captures, and en_passant only
-//     };
-
-//     let mut qmoves = self.q_moves_with_see(board, raw_moves); // stores See values so they aren't computed twice
-
-//     if let Some(tt_mv) = tt_best_move {
-//         if let Some(index) = qmoves.iter().position(|mv_s| mv_s.mv == tt_mv) {
-//             qmoves.swap(0, index);
-//         }
-//     }
-
-//     for mv_s in qmoves {
-//         // since !in_check, stand_pat will always = evaluation_for_turn in order to reach this path
-//         let mv = mv_s.mv;
-//         let see_score = mv_s.see;
-
-//         if !in_check && self.can_delta_prune(board, mv, best_score, alpha, see_score) {
-//             continue;
-//         }
-
-//         if !in_check && (mv.kind == MoveType::Capture || mv.kind == MoveType::EnPassant) {
-//             if see_score < -100 {
-//                 // the SEE capture loses a pawn
-//                 continue;
-//             }
-//         }
-
-//         let parent_hash = board.hash;
-
-//         let undo = board.make_move(mv);
-
-//         search_history.push(parent_hash);
-
-//         let score =
-//             -self.quiescence(board, -beta, -alpha, q_depth - 1, search_history, q_ply + 1);
-
-//         search_history.pop();
-
-//         board.undo_move(undo);
-
-//         if score > best_score {
-//             best_score = score;
-//             best_move = Some(mv);
-//         }
-
-//         if score > alpha {
-//             alpha = score;
-//         }
-
-//         if alpha >= beta {
-//             self.store_qtt(hash, q_depth, best_score, TTFlag::LowerBound, best_move);
-
-//             return best_score;
-//         }
-//     }
-
-//     let flag = if best_score <= original_alpha {
-//         TTFlag::UpperBound
-//     } else if best_score >= original_beta {
-//         TTFlag::LowerBound
-//     } else {
-//         TTFlag::Exact
-//     };
-
-//     self.store_qtt(hash, q_depth, best_score, flag, best_move);
-
-//     best_score
-// }

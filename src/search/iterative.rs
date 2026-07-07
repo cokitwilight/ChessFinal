@@ -22,7 +22,6 @@ impl Engine {
         };
 
         let mut total_time: f64 = 0.0;
-        let mut total_nps: f64 = 0.0;
 
         for depth in 1..=ctx.limits.max_depth {
             if ctx.should_stop() {
@@ -33,7 +32,6 @@ impl Engine {
             let result = self.search_root(board, ctx, best_result.best_move, depth);
             let elapsed = start.elapsed();
             let nodes_p_sec = (ctx.stats.nodes + ctx.stats.qnodes) as f64 / elapsed.as_secs_f64();
-            total_nps += nodes_p_sec;
             total_time += elapsed.as_secs_f64();
             ctx.stats.print_all(depth);
             println!(
@@ -49,6 +47,8 @@ impl Engine {
             best_result = result;
             best_result.depth_reached = depth;
         }
+
+        let total_nps = (ctx.stats.nodes + ctx.stats.qnodes) as f64 / total_time;
 
         println!(
             "\nTotal Time: {:.3}. Total NPS: {}\n",
