@@ -79,6 +79,9 @@ impl Board {
         // returns the bitboard for the exact color and piece type
         self.pieces[color as usize][piece as usize]
     }
+    pub fn all_pieces(&self) -> [[Bitboard; 6]; 2] {
+        self.pieces
+    }
     #[inline]
     pub fn occupancy_of(&self, color: Color) -> Bitboard {
         self.occupancy[color.idx()]

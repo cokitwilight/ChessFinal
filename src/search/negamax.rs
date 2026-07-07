@@ -1,8 +1,5 @@
-use eframe::egui::ImageFit::Exact;
-
 use crate::{
-    board::{Board, Move, MoveType, mv},
-    eval::eval::evaluation_for_turn,
+    board::{Board, Move, MoveType},
     search::{
         engine::{Engine, SearchContext},
         lmr::lmr_reduction,

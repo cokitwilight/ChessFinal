@@ -162,15 +162,20 @@ impl Engine {
         };
 
         // do move ordering here
-        self.order_moves(
-            board,
-            &mut raw_moves,
-            side_to_move,
-            ply,
-            context,
-            None,
-            tt_best_move,
-        );
+        if in_check {
+            self.order_moves(
+                // includes quiet moves and history heuristics
+                board,
+                &mut raw_moves,
+                side_to_move,
+                ply,
+                context,
+                None,
+                tt_best_move,
+            );
+        } else {
+            self.q_order_moves(board, &mut raw_moves, tt_best_move);
+        }
 
         for mv in raw_moves.iter() {
             // add see pruning and delta pruning here
