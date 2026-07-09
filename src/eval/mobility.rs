@@ -1,5 +1,5 @@
 use crate::bitboard::{
-    Bitboard, FILE_A, FILE_H, RANK_1, RANK_3, RANK_6, RANK_8, knight_attacks, pop_lsb,
+    Bitboard, FILE_A, FILE_H, RANK_1, RANK_3, RANK_6, RANK_8, RANK_MASKS, knight_attacks, pop_lsb,
 };
 
 use crate::board::Board;
@@ -18,6 +18,7 @@ pub fn mobility_score_raw(board: &Board, color: Color, info: &EvalInfo) -> i32 {
     score += available_moves(board, color, info);
     score += move_pressure(board, color, info);
     score += hanging_pieces(board, color, info);
+    score += move_aggression(board, color, info);
 
     score
 }
@@ -81,6 +82,19 @@ pub fn move_pressure(board: &Board, color: Color, info: &EvalInfo) -> i32 {
     } else {
         return 0;
     }
+}
+
+pub fn move_aggression(board: &Board, color: Color, info: &EvalInfo) -> i32 {
+    let enemy_half = match color {
+        Color::White => RANK_MASKS[4] | RANK_MASKS[5] | RANK_MASKS[6] | RANK_MASKS[7],
+        Color::Black => RANK_MASKS[0] | RANK_MASKS[1] | RANK_MASKS[2] | RANK_MASKS[3],
+    };
+
+    let num_attacks = (enemy_half & info.all_attacks(color)).count_ones() as i32;
+
+    let num_pieces = (enemy_half & board.occupancy_of(color)).count_ones() as i32;
+
+    return num_attacks + (num_pieces * 4);
 }
 
 pub fn hanging_pieces(board: &Board, color: Color, info: &EvalInfo) -> i32 {

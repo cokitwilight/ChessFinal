@@ -1,6 +1,6 @@
 use crate::bitboard::{
-    Bitboard, FILE_MASKS, RANK_2, RANK_3, RANK_6, RANK_7, Square, bit, file_of, pawn_attacks,
-    pop_lsb, rank_of,
+    Bitboard, FILE_MASKS, RANK_2, RANK_3, RANK_6, RANK_7, RANK_MASKS, Square, bit, file_of,
+    pawn_attacks, pop_lsb, rank_of,
 };
 use crate::board::Board;
 use crate::types::{Color, PieceType};
@@ -177,6 +177,59 @@ fn pawn_storm_bonus(board: &Board, color: Color, pawns: Bitboard, info: &EvalInf
 
     score -= starting_pawns as i32 * -8;
 
+    let enemy_half = match color {
+        Color::White => RANK_MASKS[4] | RANK_MASKS[5] | RANK_MASKS[6] | RANK_MASKS[7],
+        Color::Black => RANK_MASKS[0] | RANK_MASKS[1] | RANK_MASKS[2] | RANK_MASKS[3],
+    };
+
+    // Friendly pawns that are:
+    // - in the enemy half of the board,
+    // - not on the king files,
+    // - defended by at least one friendly piece,
+    // - and not attacked by an enemy pawn.
+    let mut aggressive_pawns = pawns
+        & enemy_half
+        & !king_file_mask
+        & info.all_attacks(color)
+        & !info.attacks(color.opposite(), PieceType::Pawn);
+
+    // TODO: Maybe phalanx and non isolated pawns?
+    // while let Some(sq) = pop_lsb(&mut aggressive_pawns) {
+    //     let rank = rank_of(sq) as usize;
+    //     let file = file_of(sq) as usize;
+
+    //     let rank_mask = RANK_MASKS[rank];
+    //     let mut file_mask = FILE_MASKS[file];
+
+    //     if file > 0 {
+    //         file_mask |= FILE_MASKS[file - 1];
+    //     }
+
+    //     if file < 7 {
+    //         file_mask |= FILE_MASKS[file + 1];
+    //     }
+    // }
+
+    let bonus = match aggressive_pawns.count_ones() {
+        0 => -10,
+        1 => 8,
+        2 => 20,
+        3 => 32,
+        4 => 52,
+        5 => 72,
+        6 => 102,
+        7 => 150,
+        8 => 220,
+        _ => unreachable!("Somehow more than 8 pawns in pawn_storm_bonus"),
+    };
+
+    score += bonus;
+
+    if info.phase() < 10 {
+        // don't aggressively add since passsed pawns already counts this
+        score /= 2;
+    }
+
     score
 }
 
@@ -184,9 +237,7 @@ fn pawn_chain(board: &Board, color: Color, pawns: Bitboard, info: &EvalInfo) -> 
     if pawns == 0 {
         return 0;
     }
-
-    let pawn_attacks = pawn_attacks(pawns, color);
-    let defended_pawns = pawn_attacks & pawns;
+    let defended_pawns = pawns & info.attacks(color, PieceType::Pawn);
 
     return defended_pawns.count_ones() as i32 * 4;
 }

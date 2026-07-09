@@ -1,3 +1,4 @@
+use crate::bitboard::attacks::all_attacks;
 use crate::bitboard::{
     Bitboard, FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILE_MASKS, RANK_1,
     RANK_2, RANK_7, RANK_8, Square, bit, file_of, pop_lsb, rank_of, square,
@@ -20,7 +21,7 @@ pub fn sliders_eval_raw(board: &Board, color: Color, info: &EvalInfo) -> i32 {
 
     // diagonals
     score += connected_diagonals_bonus(board, color, diagonal_sliders, info);
-    score += open_diagonal_bonus(board, color, diagonal_sliders, info);
+    score += xray_pressure_diagonal_bonus(board, color, diagonal_sliders, info);
     score += bishop_pair_bonus(board, color);
 
     // straights
@@ -50,7 +51,7 @@ fn connected_diagonals_bonus(
         return 0;
     }
 
-    // avoid adding a large bonus if the connected diagonal deosn't actually see anything
+    // avoid adding a large bonus if the connected diagonal doesn't actually see anything
 
     let mut score = 0;
 
@@ -71,7 +72,8 @@ fn connected_diagonals_bonus(
 
                 if ray_mask & occupied != 0 {
                     if ray_mask & sliders != 0 {
-                        let full_ray_mask = ray_bitboard(ray_sq, *df, *dr);
+                        let full_ray_mask = ray_bitboard(ray_sq, *df, *dr)
+                            | ray_bitboard(ray_sq, -1 * *df, -1 * *dr);
 
                         let ray_length = full_ray_mask.count_ones();
 
@@ -85,25 +87,25 @@ fn connected_diagonals_bonus(
 
                         let sees_king_ring = full_ray_mask & info.king_ring(color.opposite()) != 0;
 
-                        if enemy_pawns >= 3 {
-                            score -= 30;
+                        if enemy_pawns >= 2 {
+                            score -= 20;
                         }
 
-                        if sees_king_ring && enemy_pawns <= 2 {
-                            score += 30;
+                        if sees_king_ring && enemy_pawns <= 1 {
+                            score += 20;
                         } else if sees_king_ring {
-                            score += 10;
+                            score += 5;
                         }
 
                         if ray_length >= 7 {
                             // longest possible for black and white square bishops
-                            score += 30 + (enemy_pieces - enemy_pawns) * 5;
-                        } else if score >= 5 {
+                            score += 20 + (enemy_pieces - enemy_pawns) * 3;
+                        } else if ray_length >= 5 {
                             // second longest
-                            score += 5 + (enemy_pieces - enemy_pawns) * 5;
+                            score += 3 + (enemy_pieces - enemy_pawns) * 3;
                         } else {
                             // doubled in the wrong direction
-                            score -= 20 + (enemy_pawns - enemy_pieces) * 5;
+                            score -= 15 + (enemy_pawns - enemy_pieces) * 3;
                         }
 
                         score += 20;
@@ -122,7 +124,12 @@ fn connected_diagonals_bonus(
     score
 }
 
-fn open_diagonal_bonus(board: &Board, color: Color, sliders: Bitboard, info: &EvalInfo) -> i32 {
+fn xray_pressure_diagonal_bonus(
+    board: &Board,
+    color: Color,
+    sliders: Bitboard,
+    info: &EvalInfo,
+) -> i32 {
     if sliders == 0 {
         return 0;
     }
@@ -130,38 +137,61 @@ fn open_diagonal_bonus(board: &Board, color: Color, sliders: Bitboard, info: &Ev
 
     let mut sliders = sliders;
 
-    let pawns =
-        board.pieces(color, PieceType::Pawn) | board.pieces(color.opposite(), PieceType::Pawn);
-
     let directions = &[(1, 1), (1, -1), (-1, 1), (-1, -1)];
 
     while let Some(sq) = pop_lsb(&mut sliders) {
         for (df, dr) in directions {
-            let mut file = file_of(sq) as i8 + df;
-            let mut rank = rank_of(sq) as i8 + dr;
+            let ray_mask = ray_bitboard(sq, *df, *dr);
 
-            let mut count = 1;
+            let ray_length = ray_mask.count_ones();
 
-            while (0..8).contains(&file) && (0..8).contains(&rank) {
-                let ray_sq = square(file as u8, rank as u8);
-                let ray_mask = bit(ray_sq);
-
-                if ray_mask & pawns != 0 {
-                    break;
-                }
-
-                count += 1;
-                file += df;
-                rank += dr;
+            if ray_length < 2 {
+                // only count the long diagonals
+                continue;
             }
-            if count <= 3 {
-                score -= 2;
-            } else if count <= 5 {
-                score += count * 2;
+
+            let enemy_pawns =
+                (ray_mask & board.pieces(color.opposite(), PieceType::Pawn)).count_ones();
+            let friendly_pawns = (ray_mask & board.pieces(color, PieceType::Pawn)).count_ones();
+
+            let hanging_pieces = (ray_mask
+                & (board.occupancy_of(color.opposite()) & !info.all_attacks(color.opposite())))
+            .count_ones();
+
+            let sees_king_ring = ray_mask & info.king_ring(color.opposite()) != 0;
+
+            if enemy_pawns > 2 {
+                // severly blocked
+                score -= 20;
+            } else if enemy_pawns > 0 {
+                score -= 10;
             } else {
-                score += count * 4;
+                score += 20
+            }
+
+            if friendly_pawns > 2 {
+                // severly blocked but is helping the pawn chain
+                score -= 15;
+            } else if friendly_pawns > 0 {
+                score -= 5;
+            } else {
+                score += 10;
+            }
+
+            if hanging_pieces > 1 {
+                // maybe adjust this value
+                score += 4 * hanging_pieces as i32;
+            }
+
+            if sees_king_ring {
+                score += 10;
             }
         }
+    }
+
+    if info.phase() < 10 {
+        // bishop will likely be open and given a huge bonus in an endgame
+        score /= 2;
     }
 
     score
@@ -327,20 +357,16 @@ fn open_file_mask(pawns: Bitboard) -> Bitboard {
 fn ray_bitboard(sq: Square, df: i8, dr: i8) -> Bitboard {
     let mut final_mask = bit(sq);
 
-    let directions = [(df, dr), (-df, -dr)];
+    let mut file = file_of(sq) as i8 + df;
+    let mut rank = rank_of(sq) as i8 + dr;
+    while (0..8).contains(&file) && (0..8).contains(&rank) {
+        let ray_sq = square(file as u8, rank as u8);
+        let ray_mask = bit(ray_sq);
 
-    for (df, dr) in directions {
-        let mut file = file_of(sq) as i8 + df;
-        let mut rank = rank_of(sq) as i8 + dr;
-        while (0..8).contains(&file) && (0..8).contains(&rank) {
-            let ray_sq = square(file as u8, rank as u8);
-            let ray_mask = bit(ray_sq);
+        final_mask |= ray_mask;
 
-            final_mask |= ray_mask;
-
-            file += df;
-            rank += dr;
-        }
+        file += df;
+        rank += dr;
     }
 
     final_mask
