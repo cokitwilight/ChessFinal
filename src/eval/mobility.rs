@@ -19,11 +19,12 @@ pub fn mobility_score_raw(board: &Board, color: Color, info: &EvalInfo) -> i32 {
     score += move_pressure(board, color, info);
     score += hanging_pieces(board, color, info);
     score += move_aggression(board, color, info);
+    score += space_bonus(board, color, info);
 
     score
 }
 
-pub fn development_penalty(board: &Board, color: Color, info: &EvalInfo) -> i32 {
+fn development_penalty(board: &Board, color: Color, info: &EvalInfo) -> i32 {
     let starting_rank = match color {
         Color::White => RANK_1,
         Color::Black => RANK_8,
@@ -38,7 +39,7 @@ pub fn development_penalty(board: &Board, color: Color, info: &EvalInfo) -> i32 
     return non_developed_pieces * bonus;
 }
 
-pub fn available_moves(board: &Board, color: Color, info: &EvalInfo) -> i32 {
+fn available_moves(board: &Board, color: Color, info: &EvalInfo) -> i32 {
     let mut score = 0;
 
     let enemy_color = color.opposite();
@@ -72,7 +73,7 @@ pub fn available_moves(board: &Board, color: Color, info: &EvalInfo) -> i32 {
 }
 
 // this might not be best file for this function
-pub fn move_pressure(board: &Board, color: Color, info: &EvalInfo) -> i32 {
+fn move_pressure(board: &Board, color: Color, info: &EvalInfo) -> i32 {
     let multiple_attacked = info.attacked_by_two(color.opposite()).count_ones() as i32; // already includes occupancy check
 
     if multiple_attacked > 3 {
@@ -84,7 +85,7 @@ pub fn move_pressure(board: &Board, color: Color, info: &EvalInfo) -> i32 {
     }
 }
 
-pub fn move_aggression(board: &Board, color: Color, info: &EvalInfo) -> i32 {
+fn move_aggression(board: &Board, color: Color, info: &EvalInfo) -> i32 {
     let enemy_half = match color {
         Color::White => RANK_MASKS[4] | RANK_MASKS[5] | RANK_MASKS[6] | RANK_MASKS[7],
         Color::Black => RANK_MASKS[0] | RANK_MASKS[1] | RANK_MASKS[2] | RANK_MASKS[3],
@@ -97,12 +98,27 @@ pub fn move_aggression(board: &Board, color: Color, info: &EvalInfo) -> i32 {
     return num_attacks + (num_pieces * 4);
 }
 
-pub fn hanging_pieces(board: &Board, color: Color, info: &EvalInfo) -> i32 {
+fn hanging_pieces(board: &Board, color: Color, info: &EvalInfo) -> i32 {
     let occupancy = board.occupancy_of(color) & !board.pieces(color, PieceType::King);
 
     let hanging = occupancy & info.all_attacks(color.opposite()) & !info.all_attacks(color);
 
     return -10 * hanging.count_ones() as i32;
+}
+
+fn space_bonus(board: &Board, color: Color, info: &EvalInfo) -> i32 {
+    if info.phase() < 12 {
+        return 0;
+    }
+
+    let pawns = board.pieces(color, PieceType::Pawn);
+
+    let space_mask = pawn_space_bitboard(pawns, color);
+
+    let available_space =
+        space_mask & !info.all_attacks(color.opposite()) & !board.occupancy_of(color.opposite());
+
+    return available_space.count_ones() as i32 * 2;
 }
 
 // since not all pawn moves are captures. Ignore en passant for now as it might be too expensive/complicated
@@ -129,4 +145,27 @@ fn pawn_moves_bitboard(board: &Board, color: Color) -> Bitboard {
     }
 
     moves
+}
+
+fn pawn_space_bitboard(pawns: Bitboard, color: Color) -> Bitboard {
+    let mut pawn_space: u64;
+
+    match color {
+        Color::White => {
+            pawn_space = pawns >> 8;
+            pawn_space |= pawn_space >> 8;
+            pawn_space |= pawn_space >> 16;
+            pawn_space |= pawn_space >> 32;
+            pawn_space &= !RANK_1;
+        }
+        Color::Black => {
+            pawn_space = pawns << 8;
+            pawn_space |= pawn_space << 8;
+            pawn_space |= pawn_space << 16;
+            pawn_space |= pawn_space << 32;
+            pawn_space &= !RANK_8;
+        }
+    }
+
+    pawn_space
 }

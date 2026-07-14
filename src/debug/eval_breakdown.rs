@@ -33,7 +33,10 @@ pub fn evaluation_breakdown(board: &Board) -> EvalBreakdown {
     let mg_pst = board.mg_pst();
     let eg_pst = board.eg_pst();
 
-    let pst = (mg_pst * phase + eg_pst * eg_phase) / MAX_PHASE;
+    let mut pst = (mg_pst * phase + eg_pst * eg_phase) / MAX_PHASE;
+    // for debugging pst
+
+    pst /= 2;
 
     let material = board.material();
     let mobility = mobility_score(board, &eval_info);
@@ -65,6 +68,8 @@ pub fn evaluation_breakdown(board: &Board) -> EvalBreakdown {
 
 #[cfg(test)]
 mod eval_tests {
+    use crate::eval::pawn::print_pawn_eval;
+
     use super::*;
 
     #[test]
@@ -140,6 +145,10 @@ mod eval_tests {
                 "Test Position 1.",
                 "r1b2k2/pp2p2Q/2p1p1p1/3q1rN1/8/2P5/P1P2PPP/R1B2RK1 w - - 0 1",
             ),
+            (
+                "Test Position 2.",
+                "8/k7/2Q5/pp6/4p3/2p1P1q1/P5Np/7K w - - 0 1",
+            ),
         ];
 
         for (name, fen) in positions {
@@ -163,6 +172,8 @@ mod eval_tests {
             println!("------------------------------");
             println!("{:<16} {:>8}", "Total", b.total);
             println!("{:<16} {:>8}", "STM total", b.side_to_move_total);
+
+            print_pawn_eval(&board);
 
             assert_eq!(
                 b.total,

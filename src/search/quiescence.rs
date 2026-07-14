@@ -1,6 +1,6 @@
 use crate::{
     board::{Board, Move, MoveType},
-    eval::eval::evaluation_for_turn,
+    eval::eval::{evaluation_for_turn, lazy_eval_for_turn},
     moves::{legal, see::see},
     search::{
         Engine,
@@ -12,6 +12,8 @@ use crate::{
 };
 
 const DELTA_MARGIN: i32 = 200; // safe defualt for now
+
+const LAZY_MARGIN: i32 = 300;
 
 impl Engine {
     pub fn quiescence(
@@ -25,6 +27,8 @@ impl Engine {
     ) -> i32 {
         context.stats.qnodes += 1;
 
+        // NOTE: These will never be true in the first call to quiescence since negamax does this check first before calling if depth == 0 -> quiescence
+        // this is why quiescence qtt probes always equals qnodes.
         if Engine::repetition_in_search(context, board.hash(), board.halfmove_clock() as usize) {
             context.stats.repetition_returns += 1;
             return 0;
@@ -130,6 +134,13 @@ impl Engine {
 
             evasions
         } else {
+            let lazy_eval = lazy_eval_for_turn(board);
+
+            if lazy_eval - LAZY_MARGIN >= beta || lazy_eval + LAZY_MARGIN <= alpha {
+                return lazy_eval;
+            }
+
+            // later you can make evaluation from turn add onto lazy eval since they technically recomputed certain things
             stand_pat = evaluation_for_turn(board);
             best_score = stand_pat;
 
@@ -207,23 +218,24 @@ impl Engine {
                     continue;
                 }
 
-                if see(board, *mv) <= -500 {
-                    context.stats.see_prunes += 1;
-                    // less agressive pruning since see doesn't check legality yet
-                    continue;
-                }
+                // For now this is too expensive relative to node cutoffs(since its not legal the margin is too large)
+                // if see(board, *mv) <= -500 {
+                //     context.stats.see_prunes += 1;
+                //     // less agressive pruning since see doesn't check legality yet
+                //     continue;
+                // }
             }
 
             let undo = board.make_move(*mv);
 
             let child_hash = board.hash();
 
-            if board.in_check(side_to_move) {
-                // illegal move
-                context.stats.qillegal_moves += 1;
-                board.undo_move(undo);
-                continue;
-            }
+            // if board.in_check(side_to_move) {
+            //     // illegal move
+            //     context.stats.qillegal_moves += 1;
+            //     board.undo_move(undo);
+            //     continue;
+            // }
 
             context.repetition_history.push(child_hash);
 

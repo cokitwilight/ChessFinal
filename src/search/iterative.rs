@@ -367,3 +367,13 @@ impl Engine {
         }
     }
 }
+
+pub fn adjusted_depth_for_phase(base_depth: usize, phase: i32) -> usize {
+    if phase <= 6 {
+        base_depth + 2
+    } else if phase <= 12 {
+        base_depth + 1
+    } else {
+        base_depth
+    }
+}

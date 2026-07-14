@@ -2,12 +2,18 @@ use crate::bitboard::{
     Bitboard, Square, bishop_attacks, bit, king_attacks, knight_attacks, pawn_attacks_from_square,
     pop_lsb, queen_attacks, rook_attacks,
 };
-use crate::board::Board;
+use crate::board::{self, Board};
 use crate::eval::{
     king::king_eval, knight::knight_eval, mobility::mobility_score, pawn::pawn_eval,
     phase::MAX_PHASE, sliders::sliders_eval,
 };
 use crate::types::{COLORS, Color, PIECE_TYPES, PieceType};
+
+pub const CENTER_SQUARES: Bitboard = 0x0000_3C3C_3C3C_0000;
+
+pub const BLACK_SQUARES: Bitboard = 0xAA55_AA55_AA55_AA55;
+
+pub const WHITE_SQUARES: Bitboard = BLACK_SQUARES << 1;
 
 const KING_ATTACK_WEIGHTS: [i32; 6] = [
     0,  // Pawn, handled separately
@@ -208,7 +214,10 @@ pub fn evaluation(board: &Board) -> i32 {
     let mg_pst = board.mg_pst();
     let eg_pst = board.eg_pst();
 
-    let pst_eval = (mg_pst * phase + eg_pst * eg_phase) / MAX_PHASE;
+    let mut pst_eval = (mg_pst * phase + eg_pst * eg_phase) / MAX_PHASE;
+
+    // for testing pst values
+    // pst_eval /= 2;
 
     total_eval += board.material();
     total_eval += pst_eval;
@@ -221,7 +230,32 @@ pub fn evaluation(board: &Board) -> i32 {
     total_eval += sliders_eval(board, &eval_info);
     total_eval += king_eval(board, &eval_info);
 
+    // match board.side_to_move() {
+    //     // for tempo
+    //     Color::White => total_eval + 10,
+    //     Color::Black => total_eval - 10,
+    // };
+
     total_eval
+}
+
+pub fn lazy_eval(board: &Board) -> i32 {
+    let phase = board.phase();
+    let eg_phase = MAX_PHASE - phase;
+
+    let mg_pst = board.mg_pst();
+    let eg_pst = board.eg_pst();
+
+    let mut pst_eval = (mg_pst * phase + eg_pst * eg_phase) / MAX_PHASE;
+    pst_eval + board.material()
+}
+
+pub fn lazy_eval_for_turn(board: &Board) -> i32 {
+    let eval = lazy_eval(board);
+    match board.side_to_move() {
+        Color::White => eval,
+        Color::Black => -eval,
+    }
 }
 
 pub fn evaluation_for_turn(board: &Board) -> i32 {

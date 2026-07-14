@@ -12,7 +12,7 @@ pub const CHECKMATE_SCORE: i32 = 100000;
 pub const NEG_INF: i32 = -1_000_000_000;
 pub const POS_INF: i32 = 1_000_000_000;
 
-pub const MAX_Q_DEPTH: usize = 5;
+pub const MAX_Q_DEPTH: usize = 8;
 
 impl Engine {
     // Implementation for negamax function
@@ -148,12 +148,13 @@ impl Engine {
 
             let child_hash = board.hash();
 
-            if board.in_check(side_to_move) {
-                // illegal move
-                context.stats.illegal_moves += 1;
-                board.undo_move(undo);
-                continue;
-            }
+            // if board.in_check(side_to_move) {
+            //     // illegal move
+            //     context.stats.illegal_moves += 1;
+            //     board.undo_move(undo);
+            //     continue;
+            // }
+
             // for stats debugging
             let was_killer = context.killer_moves.contains(ply, *mv);
             let history_score = self.history.get(side_to_move, mv.from, mv.to);

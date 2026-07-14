@@ -1,10 +1,9 @@
-use crate::bitboard::attacks::all_attacks;
 use crate::bitboard::{
     Bitboard, FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILE_MASKS, RANK_1,
     RANK_2, RANK_7, RANK_8, Square, bit, file_of, pop_lsb, rank_of, square,
 };
 use crate::board::Board;
-use crate::eval::eval::EvalInfo;
+use crate::eval::eval::{BLACK_SQUARES, CENTER_SQUARES, EvalInfo, WHITE_SQUARES};
 use crate::types::{Color, PieceType};
 
 pub fn sliders_eval(board: &Board, info: &EvalInfo) -> i32 {
@@ -23,6 +22,7 @@ pub fn sliders_eval_raw(board: &Board, color: Color, info: &EvalInfo) -> i32 {
     score += connected_diagonals_bonus(board, color, diagonal_sliders, info);
     score += xray_pressure_diagonal_bonus(board, color, diagonal_sliders, info);
     score += bishop_pair_bonus(board, color);
+    score += bishop_blocked_by_pawns_bonus(board, color, info);
 
     // straights
     score += connected_file_bonus(board, color, straight_sliders, info);
@@ -35,10 +35,35 @@ pub fn sliders_eval_raw(board: &Board, color: Color, info: &EvalInfo) -> i32 {
 fn bishop_pair_bonus(board: &Board, color: Color) -> i32 {
     let bishops = board.pieces(color, PieceType::Bishop).count_ones();
     if bishops >= 2 {
-        return 20;
+        return 30;
     } else {
         return 0;
     }
+}
+
+fn bishop_blocked_by_pawns_bonus(board: &Board, color: Color, info: &EvalInfo) -> i32 {
+    let black_bishop = BLACK_SQUARES & board.pieces(color, PieceType::Bishop);
+    let white_bishop = WHITE_SQUARES & board.pieces(color, PieceType::Bishop);
+
+    let mut score = 0;
+
+    if black_bishop != 0 {
+        let enemy_pawns =
+            (BLACK_SQUARES & CENTER_SQUARES & board.pieces(color.opposite(), PieceType::Pawn))
+                .count_ones() as i32;
+
+        score -= 5 * enemy_pawns;
+    }
+
+    if white_bishop != 0 {
+        let enemy_pawns =
+            (WHITE_SQUARES & CENTER_SQUARES & board.pieces(color.opposite(), PieceType::Pawn))
+                .count_ones() as i32;
+
+        score -= 5 * enemy_pawns;
+    }
+
+    score
 }
 
 fn connected_diagonals_bonus(

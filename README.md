@@ -29,18 +29,18 @@ The move generator, board representation, GUI, Zobrist hashing, and game-end det
 - [x] Transposition Tables for regualar and quiescence search
 - [x] Killer Moves Heuristic
 - [x] History Heuristics
-- [ ] SEE(Static Exchange Evaluation)
+- [X] SEE(Static Exchange Evaluation)
 - [x] Iterative Deepening
-- [ ] Aspiration Windows
-- [ ] Delta Pruning
-- [ ] Simple Opening Book
+- [X] Aspiration Windows
+- [X] Delta Pruning
+- [X] Simple Opening Book
 - [x] Gui with Player vs Bot
 
 ## Planned Features
 
-- [ ] Null Move Pruning
+- [X] Null Move Pruning
 - [ ] Magic Bitboards
-- [ ] Pin Masks
+- [X] Pin Masks
 - [ ] UCI Support
 - [ ] SMP Search
 

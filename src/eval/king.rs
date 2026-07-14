@@ -16,7 +16,7 @@ pub fn king_eval_raw(board: &Board, color: Color, info: &EvalInfo) -> i32 {
         panic!("No king in board.pieces in king_eval_raw!");
     };
 
-    // score += king_ring_safety(board, color, info);
+    score += king_ring_safety(board, color, info);
     score += pawn_shield_score(board, color, king_sq, info);
     score += open_file_bonus(board, color, king_sq, info);
     score += open_diagonal_bonus(board, color, king_sq, info);
@@ -28,13 +28,50 @@ pub fn king_eval_raw(board: &Board, color: Color, info: &EvalInfo) -> i32 {
 fn king_ring_safety(board: &Board, color: Color, info: &EvalInfo) -> i32 {
     let mut score = 0;
 
-    const MAX_DANGER: i32 = 100;
+    // TODO: Add a king danger table
 
-    let danger = info.king_attack_weight(color).clamp(0, MAX_DANGER);
+    let enemy = color.opposite();
 
-    let penalty = KING_DANGER_TABLE[danger as usize];
+    let king_ring = info.king_ring(color);
 
-    score -= penalty;
+    let pawn_attacks = (king_ring & info.attacks(enemy, PieceType::Pawn)).count_ones();
+
+    let knight_attacks = (king_ring & info.attacks(enemy, PieceType::Knight)).count_ones();
+
+    let bishop_attacks = (king_ring & info.attacks(enemy, PieceType::Bishop)).count_ones();
+
+    let rook_attacks = (king_ring & info.attacks(enemy, PieceType::Rook)).count_ones();
+
+    let queen_attacks = (king_ring & info.attacks(enemy, PieceType::Queen)).count_ones();
+
+    let num_attacks = pawn_attacks + knight_attacks + bishop_attacks + rook_attacks + queen_attacks;
+
+    let defended_squares = (king_ring & info.attacked_by_two(color)).count_ones();
+
+    let defender_bonus = match defended_squares {
+        0 => -20,
+        1 => -10,
+        2 => 10,
+        3 => 30,
+        4 => 60,
+        5 => 100,
+        _ => 150,
+    };
+
+    let attack_penalty = match num_attacks {
+        0 => -20,
+        1 => 5,
+        2 => 20,
+        3 => 60,
+        4 => 120,
+        5 => 250,
+        6 => 600,
+        _ => 1200,
+    };
+
+    score -= attack_penalty;
+
+    score += defender_bonus;
 
     score
 }
